@@ -12,24 +12,24 @@ from collections import defaultdict, deque
 from game import Board, Game
 from mcts_pure import MCTSPlayer as MCTS_Pure
 from mcts_alphaZero import MCTSPlayer
-from policy_value_net import PolicyValueNet  # Theano and Lasagne
-# from policy_value_net_pytorch import PolicyValueNet  # Pytorch
+#from policy_value_net import PolicyValueNet  # Theano and Lasagne
+from policy_value_net_pytorch import PolicyValueNet  # Pytorch
 # from policy_value_net_tensorflow import PolicyValueNet # Tensorflow
 # from policy_value_net_keras import PolicyValueNet # Keras
-
+import os
 
 class TrainPipeline():
     def __init__(self, init_model=None):
         # params of the board and the game
-        self.board_width = 6
-        self.board_height = 6
-        self.n_in_row = 4
+        self.board_width = 15
+        self.board_height = 15
+        self.n_in_row = 5
         self.board = Board(width=self.board_width,
                            height=self.board_height,
                            n_in_row=self.n_in_row)
         self.game = Game(self.board)
         # training params
-        self.learn_rate = 2e-3
+        self.learn_rate = 3e-3
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
         self.temp = 1.0  # the temperature param
         self.n_playout = 400  # num of simulations for each move
@@ -165,7 +165,7 @@ class TrainPipeline():
     def run(self):
         """run the training pipeline"""
         try:
-            for i in range(self.game_batch_num):
+            for i in range(self.game_batch_num*6,self.game_batch_num*9):
                 self.collect_selfplay_data(self.play_batch_size)
                 print("batch i:{}, episode_len:{}".format(
                         i+1, self.episode_len))
@@ -181,7 +181,7 @@ class TrainPipeline():
                         print("New best policy!!!!!!!!")
                         self.best_win_ratio = win_ratio
                         # update the best_policy
-                        self.policy_value_net.save_model('./best_policy.model')
+                        self.policy_value_net.save_model(f'./best_policy_15_15_{i}.model')
                         if (self.best_win_ratio == 1.0 and
                                 self.pure_mcts_playout_num < 5000):
                             self.pure_mcts_playout_num += 1000
@@ -191,5 +191,5 @@ class TrainPipeline():
 
 
 if __name__ == '__main__':
-    training_pipeline = TrainPipeline()
+    training_pipeline = TrainPipeline(init_model=('./current_policy.model' if os.path.exists('./current_policy.model') else None))
     training_pipeline.run()
